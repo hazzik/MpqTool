@@ -46,6 +46,13 @@ namespace MpqTool
         static Regex regexArgExpression = new Regex("-r\\s*(?<exp>.+)", RegexOptions.Singleline | RegexOptions.Compiled);
         static Regex listFileExpression = new Regex("-l\\s*(?<file>.+)", RegexOptions.Singleline | RegexOptions.Compiled);
         static Regex destDirExpression = new Regex("-d\\s*(?<file>.+)", RegexOptions.Singleline | RegexOptions.Compiled);
+
+        Regex regex = null;
+        string archiveFile = null;
+        string listFile = null;
+        string destDir = null;
+        bool stripPath = false;
+        bool quietOutput = false;
         #endregion
 
         /// <summary>
@@ -54,19 +61,12 @@ namespace MpqTool
         /// <param name="args">The args.</param>
         void Run(string[] args)
         {
-            Console.WriteLine("mpqtool v0.8");
-
             try
             {
                 // Check mandatory args
                 if(args.Length < 1)
                     throw new ArgumentException(BuildUsage());
                 
-                Regex regex = null;
-                string archiveFile = null;
-                string listFile = null;
-                string destDir = null;
-
                 // handle args
                 switch(args[0].ToLower())
                 {
@@ -84,8 +84,12 @@ namespace MpqTool
                             throw new ArgumentException("You must specify an archive!");
                         
                         archiveFile = args[1];
-                        ParseAdditionalArgs(args, 2, ref regex, ref listFile, ref destDir);
-                        ListArchive(archiveFile, regex, listFile);
+                        ParseAdditionalArgs(args, 2);
+            
+                        if(!quietOutput)
+                            ShowBanner();
+
+                        ListArchive();
                         return;
                     }
 
@@ -96,8 +100,12 @@ namespace MpqTool
                             throw new ArgumentException("You must specify an archive!");
 
                         archiveFile = args[1];
-                        ParseAdditionalArgs(args, 2, ref regex, ref listFile, ref destDir);
-                        ExtractArchive(archiveFile, regex, listFile, destDir);
+                        ParseAdditionalArgs(args, 2);
+
+                        if(!quietOutput)
+                            ShowBanner();
+                        
+                        ExtractArchive();
                         return;
                     }
                 }
@@ -112,17 +120,34 @@ namespace MpqTool
         }
 
         /// <summary>
+        /// Shows the banner.
+        /// </summary>
+        private static void ShowBanner()
+        {
+            Console.WriteLine("mpqtool v0.85");
+        }
+
+        /// <summary>
         /// Parses additional args.
         /// </summary>
         /// <param name="args">The args.</param>
         /// <param name="StartArgIndex">Start index of the arg.</param>
-        /// <param name="regex">The regex.</param>
-        /// <param name="listFile">The list file.</param>
-        /// <param name="destDir">The dest dir.</param>
-        void ParseAdditionalArgs(string[] args, int StartArgIndex, ref Regex regex, ref string listFile, ref string destDir)
+        void ParseAdditionalArgs(string[] args, int StartArgIndex)
         {
             for(int i = StartArgIndex; i < args.Length; i++)
             {
+                if(args[i].ToLower() == "-sp")
+                {
+                    stripPath = true;
+                    continue;
+                }
+                
+                if(args[i].ToLower() == "-q")
+                {
+                    quietOutput = true;
+                    continue;
+                }
+                
                 // try matching list file arg first
                 Match m = listFileExpression.Match(args[i]);
 
@@ -181,10 +206,7 @@ namespace MpqTool
         /// <summary>
         /// Lists the contents of the archive.
         /// </summary>
-        /// <param name="archiveFile">The archiveFile.</param>
-        /// <param name="regex">regular expression used for matching files.</param>
-        /// <param name="listFile">The list file.</param>
-        void ListArchive(string archiveFile, Regex regex, string listFile)
+        void ListArchive()
         {
             using(MpqArchive archive = new MpqArchive(archiveFile))
             {
@@ -203,11 +225,15 @@ namespace MpqTool
                     if(regex != null && !regex.Match(fi.Name).Success)
                         continue;
 
+                    string srcFile = fi.Name;
+                    if(stripPath)
+                        srcFile = Path.GetFileName(srcFile);
+                    
                     // display info
                     Console.WriteLine("{0, 10}   {1, 9}   {2, 5}   {3, 9}   {4}",
                                       fi.UncompressedSize, fi.CompressedSize,
                                       CompressionRatioString(fi.UncompressedSize, fi.CompressedSize),
-                                      CompressionTypeString(fi.Flags), fi.Name);
+                                      CompressionTypeString(fi.Flags), srcFile);
                 }
             }
         }
@@ -215,11 +241,7 @@ namespace MpqTool
         /// <summary>
         /// Extracts files from the archive matching the pattern (if any)
         /// </summary>
-        /// <param name="archiveFile">The archiveFile.</param>
-        /// <param name="regex">regular expression used for matching files.</param>
-        /// <param name="listFile">The list file.</param>
-        /// <param name="destDir">The dest dir.</param>
-        void ExtractArchive(string archiveFile, Regex regex, string listFile, string destDir)
+        void ExtractArchive()
         {
             using(MpqArchive archive = new MpqArchive(archiveFile))
             {
@@ -234,7 +256,8 @@ namespace MpqTool
                 // buffers
                 byte[] buf = new byte[0x40000];
 
-                Console.WriteLine("Extracting to {0}", destDir);
+                if(!quietOutput)
+                    Console.WriteLine("Extracting to {0}", destDir);
 
                 for(int i = 0; i < archive.Files.Length; i++)
                 {
@@ -251,10 +274,15 @@ namespace MpqTool
                     if(regex != null && !regex.Match(fi.Name).Success)
                         continue;
 
-                    Console.Write(fi.Name + " .. ");
+                    if(!quietOutput)
+                        Console.Write(fi.Name + " .. ");
 
                     // create destination directory
-                    string destFile = Path.Combine(destDir, fi.Name);
+                    string srcFile = fi.Name;
+                    if(stripPath)
+                        srcFile = Path.GetFileName(srcFile);
+                   
+                    string destFile = Path.Combine(destDir, srcFile);
                     string absDestDir = Path.GetDirectoryName(destFile);
                     CreateDirectory(absDestDir);
 
@@ -276,7 +304,8 @@ namespace MpqTool
                         }
                     }
 
-                    Console.WriteLine("Done.");
+                    if(!quietOutput)
+                        Console.WriteLine("Done.");
                 }
             }
         }
@@ -313,13 +342,26 @@ namespace MpqTool
             StringBuilder sb = new StringBuilder();
             sb.Append("Usage: mpqtool <command> <archive> [option]\n");
             sb.Append("\n");
-            sb.Append("Main operation mode:\n");
-            sb.Append("  -e, --extract [wildcard] [-d<destDir>] [-r<regex>] [-l<listFile>]\n  Extracts files from the given mpq archive.\n\n");
-            sb.Append("  -l, --list [wildcard] [-r<regex>] [-l<listFile>]\n  Lists the contents of a mpq archive.\n");
+            sb.Append("Commands:\n");
             sb.Append("\n");
-            sb.Append("Informative output:\n");
-            sb.Append("  -h, --help\n  Display this help and exit\n");
-
+            sb.Append("Extract files from the given mpq archive.\n");
+            sb.Append("  -e, --extract [wildcard] [-d<destDir>] [-r<regex>] [-sp] [-q] [-l<listFile>]\n");
+            sb.Append("\n");
+            sb.Append("List the contents of a mpq archive.\n");
+            sb.Append("  -l, --list [wildcard] [-r<regex>]  [-sp] [-q] [-l<listFile>]\n");
+            sb.Append("\n");
+            sb.Append("Display this help and exit\n");
+            sb.Append("  -h, --help\n");
+            sb.Append("\n");
+            sb.Append("\n");
+            sb.Append("Options:\n");
+            sb.Append("\n");
+            sb.Append("  <wildcard>\tStandard wildcard (*.mpq)\n");
+            sb.Append("  -sp\t\tStrips path information from destination file.\n");
+            sb.Append("  -d\t\tSpecifies the output directory.\n");
+            sb.Append("  -l\t\tSpecifies a custom list file.\n");
+            sb.Append("  -q\t\tSuppress console output.\n");
+            
             return sb.ToString();
         }
 
