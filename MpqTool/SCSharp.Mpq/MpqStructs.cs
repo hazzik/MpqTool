@@ -94,6 +94,14 @@ namespace MpqReader
 			BlockIndex = br.ReadUInt32();
 		}
 
+        public static MpqHash InvalidHash()
+        {
+            MpqHash invalid = new MpqHash();
+            invalid.Name1 = uint.MaxValue;
+            invalid.Name2 = uint.MaxValue;
+            return invalid;
+        }
+
 		public bool IsValid
 		{
 			get

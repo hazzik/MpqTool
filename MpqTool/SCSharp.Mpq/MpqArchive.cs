@@ -133,12 +133,11 @@ namespace MpqReader
 			MpqBlock block;
 
 			hash = GetHashEntry(Filename);
-			uint blockindex = hash.BlockIndex;
 			
-			if (blockindex == uint.MaxValue) 
+			if (!hash.IsValid) 
 				throw new FileNotFoundException("File not found: " + Filename);
 			
-			block = mBlocks[blockindex];
+			block = mBlocks[hash.BlockIndex];
 
 			return new MpqStream(this, block);
 		}
@@ -146,7 +145,7 @@ namespace MpqReader
 		public bool FileExists(string Filename)
 		{
 			MpqHash hash = GetHashEntry(Filename);
-			return (hash.BlockIndex != uint.MaxValue);
+			return (hash.IsValid);
 		}              
 		
 		internal Stream BaseStream
@@ -168,9 +167,7 @@ namespace MpqReader
 				if (hash.Name1 == name1 && hash.Name2 == name2) return hash;
 			}
 
-			MpqHash nullhash = new MpqHash();
-			nullhash.BlockIndex = uint.MaxValue;
-			return nullhash;
+            return MpqHash.InvalidHash();
 		}
 
 		internal static uint HashString(string Input, int Offset)
@@ -431,6 +428,7 @@ namespace MpqReader
                                 while ((data = reader.ReadLine()) != null)
                                 {
                                     MpqHash hash = GetHashEntry(data);
+                                    if (!hash.IsValid) continue;
                                     MpqBlock block = mBlocks[hash.BlockIndex];
 
                                     // initialize and add new FileInfo
