@@ -392,6 +392,7 @@ namespace MpqReader
             int Offset = 0;
             while (true)
             {
+                if (ExpectedLength == 0) break;
                 int size = s.Read(Output, Offset, ExpectedLength);
                 if (size == 0) break;
                 Offset += size;
