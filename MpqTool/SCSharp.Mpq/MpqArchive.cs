@@ -276,7 +276,7 @@ namespace MpqReader
                 seed2 = ch + seed2 + (seed2 << 5) + 3;
                 seed2 += sStormBuffer[0x400 + (seed1 & 0xFF)];
                 ch = Data[1] ^ (seed1 + seed2);
-                if ((ch & 0xFFFF0000) == 0)
+                if ((ch & 0xFFFE0000) == 0)
                 {
                     return saveseed1;
                 }
