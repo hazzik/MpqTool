@@ -156,7 +156,20 @@ namespace MpqReader
             if (mBlock.IsEncrypted && mBlock.FileSize > 3)
             {
                 if (mSeed1 == 0)
-                    throw new Exception("Unable to determine encryption key");
+                {
+                    uint value0 = BitConverter.ToUInt32(data, 0);
+                    uint value1 = BitConverter.ToUInt32(data, 4);
+					mSeed1 = MpqArchive.DetectFileSeed(value0, value1, 0x2fbfbbef, 0x3d3d3d2f); // .J unicode magic
+                    if (mSeed1 == 0)
+                    {
+                        mSeed1 = MpqArchive.DetectFileSeed(value0, value1, 0x3d3d2f2f, 0x3d3d3d3d); // .J ascii
+	                    if (mSeed1 == 0)
+	                    {
+                            mSeed1 = MpqArchive.DetectFileSeed(value0, value1, 0x46464952, mBlock.FileSize - 8); // RIFF
+                    		if (mSeed1 == 0) throw new Exception("Unable to determine encryption key");
+                    	}
+                    }
+                }
                 MpqArchive.DecryptBlock(data, (uint)(mSeed1 + BlockIndex));
             }
 

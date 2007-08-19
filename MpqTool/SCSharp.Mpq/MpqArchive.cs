@@ -237,80 +237,7 @@ namespace MpqReader
 				Data[i] = result;
 			}
 		}
-#if false
-		// This function calculates the encryption key based on
-		// some assumptions we can make about the headers for encrypted files
-        internal static uint DetectFileSeed(uint[] Data, uint Decrypted)
-        {
-            uint saveseed1;
-            uint temp = Data[0] ^ Decrypted;		/* temp = seed1 + seed2 */
-            int i = 0;
-            temp -= 0xEEEEEEEE;				/* temp = seed1 + sStormBuffer[0x400 + (seed1 & 0xFF)] */
 
-            for (i = 0; i < 0x100; i++)
-            {
-                /* Try all 255 possibilities */
-                uint seed1;
-                uint seed2 = 0xEEEEEEEE;
-                uint ch;
-
-                /* Try the first uint's (We exactly know the value) */
-                seed1 = temp - sStormBuffer[0x400 + i];
-                seed2 += sStormBuffer[0x400 + (seed1 & 0xFF)];
-                ch = Data[0] ^ (seed1 + seed2);
-
-                if (ch != Decrypted)
-                {
-                    continue;
-                }
-
-                /* Add 1 because we are decrypting block positions */
-                saveseed1 = seed1 + 1;
-
-                /*
-                 *  If OK, continue and test the second value. We don't know exactly the value,
-                 *  but we know that the second one has lower 16 bits set to zero
-                 *  (no compressed block is larger than 0xFFFF bytes)
-                 */
-                seed1 = ((~seed1 << 0x15) + 0x11111111) | (seed1 >> 0x0B);
-                seed2 = ch + seed2 + (seed2 << 5) + 3;
-                seed2 += sStormBuffer[0x400 + (seed1 & 0xFF)];
-                ch = Data[1] ^ (seed1 + seed2);
-                if ((ch & 0xFFFE0000) == 0)
-                {
-                    return saveseed1;
-                }
-            }
-
-            return 0;
-        }
-
-        private static uint[] BuildStormBuffer()
-        {
-            uint seed = 0x100001;
-
-            uint[] result = new uint[0x500];
-            uint index1 = 0;
-            uint index2 = 0;
-            int i;
-            for (index1 = 0; index1 < 0x100; index1++)
-            {
-                for (index2 = index1, i = 0; i < 5; i++, index2 += 0x100)
-                {
-                    uint temp1, temp2;
-                    seed = (seed * 125 + 3) % 0x2AAAAB;
-                    temp1 = (seed & 0xFFFF) << 0x10;
-
-                    seed = (seed * 125 + 3) % 0x2AAAAB;
-                    temp2 = (seed & 0xFFFF);
-
-                    result[index2] = (temp1 | temp2);
-                }
-            }
-            return result;
-        }
-	    
-#else
 		// This function calculates the encryption key based on
 		// some assumptions we can make about the headers for encrypted files
 		internal static uint DetectFileSeed(uint[] Data, uint Decrypted)
@@ -343,6 +270,33 @@ namespace MpqReader
 			return 0;
 		}
 
+        internal static uint DetectFileSeed(uint Value0, uint Value1, uint Decrypted1, uint Decrypted2)
+        {
+            uint temp = (Value0 ^ Decrypted1) - 0xeeeeeeee;
+
+            for (int i = 0; i < 0x100; i++)
+            {
+                uint seed1 = temp - sStormBuffer[0x400 + i];
+                uint seed2 = 0xeeeeeeee + sStormBuffer[0x400 + (seed1 & 0xff)];
+                uint result = Value0 ^ (seed1 + seed2);
+
+                if (result != Decrypted1)
+                    continue;
+
+                uint saveseed1 = seed1;
+
+                // Test this result against the 2nd value
+                seed1 = ((~seed1 << 21) + 0x11111111) | (seed1 >> 11);
+                seed2 = result + seed2 + (seed2 << 5) + 3;
+
+                seed2 += sStormBuffer[0x400 + (seed1 & 0xff)];
+                result = Value1 ^ (seed1 + seed2);
+
+                if (result == Decrypted2) return saveseed1;
+            }
+            return 0;
+        }
+
         private static uint[] BuildStormBuffer()
 		{
 			uint seed = 0x100001;
@@ -364,7 +318,6 @@ namespace MpqReader
 
 			return result;
 		}
-#endif
 	    
         // OW
         #region File Info Support
