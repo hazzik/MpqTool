@@ -71,7 +71,7 @@ namespace MpqReader
 		private void Init()
 		{
 			if (LocateMpqHeader() == false)
-				throw new Exception("Unable to find MPQ header");
+                throw new MpqParserException("Unable to find MPQ header");
 
 			BinaryReader br = new BinaryReader(mStream);
 

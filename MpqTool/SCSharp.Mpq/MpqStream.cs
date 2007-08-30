@@ -107,7 +107,7 @@ namespace MpqReader
                 {
                     mSeed1 = MpqArchive.DetectFileSeed(mBlockPositions, blockpossize);
                     if (mSeed1 == 0)
-                        throw new Exception("Unable to determine encyption seed");
+                        throw new MpqParserException("Unable to determine encyption seed");
                 }
                 
                 MpqArchive.DecryptBlock(mBlockPositions, mSeed1);
@@ -166,7 +166,7 @@ namespace MpqReader
 	                    if (mSeed1 == 0)
 	                    {
                             mSeed1 = MpqArchive.DetectFileSeed(value0, value1, 0x46464952, mBlock.FileSize - 8); // RIFF
-                    		if (mSeed1 == 0) throw new Exception("Unable to determine encryption key");
+                            if (mSeed1 == 0) throw new MpqParserException("Unable to determine encryption key");
                     	}
                     }
                 }
@@ -378,7 +378,7 @@ namespace MpqReader
                 if (comptype == 0) return result;
                 sinput = new MemoryStream(result);
             }
-            throw new Exception(String.Format("Unhandled compression flags: 0x{0:X}", comptype));
+            throw new MpqParserException(String.Format("Unhandled compression flags: 0x{0:X}", comptype));
         }
 
 #if WITH_BZIP

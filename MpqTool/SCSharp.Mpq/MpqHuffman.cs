@@ -266,7 +266,7 @@ namespace MpqReader
 			{
 				int bit = Input.ReadBits(1);
 				if (bit == -1)
-					throw new Exception("Unexpected end of file");
+                    throw new MpqParserException("Unexpected end of file");
 
 				node = bit == 0 ? node.Child0 : node.Child1;
 			}

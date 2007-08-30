@@ -98,12 +98,12 @@ namespace MpqReader
 
 			mCType = (CompressionType)Input.ReadByte();
 			if (mCType != CompressionType.Binary && mCType != CompressionType.Ascii)
-				throw new Exception("Invalid compression type: " + mCType);
+                throw new MpqParserException("Invalid compression type: " + mCType);
 
 			mDSizeBits = Input.ReadByte();
 			// This is 6 in test cases
 			if(4 > mDSizeBits || mDSizeBits > 6)
-				throw new Exception("Invalid dictionary size: " + mDSizeBits);
+                throw new MpqParserException("Invalid dictionary size: " + mDSizeBits);
 		}
 
 		public byte[] Explode(int ExpectedSize)

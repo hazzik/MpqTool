@@ -40,6 +40,7 @@
     <Compile Include="SCSharp.Mpq\Mpq.cs" />
     <Compile Include="SCSharp.Mpq\MpqArchive.cs" />
     <Compile Include="SCSharp.Mpq\MpqHuffman.cs" />
+    <Compile Include="SCSharp.Mpq\MpqParserException.cs" />
     <Compile Include="SCSharp.Mpq\MpqStream.cs" />
     <Compile Include="SCSharp.Mpq\MpqStructs.cs" />
     <Compile Include="SCSharp.Mpq\MpqWavCompression.cs" />
