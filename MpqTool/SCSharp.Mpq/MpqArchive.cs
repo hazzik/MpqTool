@@ -91,12 +91,13 @@ namespace MpqReader
 			// Load block table
 			mStream.Seek(mHeader.BlockTablePos, SeekOrigin.Begin);
 			byte[] blockdata = br.ReadBytes((int)(mHeader.BlockTableSize * MpqBlock.Size));
+            int blockcount = (int)(blockdata.Length / MpqBlock.Size); // This is not always mHeader.BlockTableSize
 			DecryptTable(blockdata, "(block table)");
 
 			br2 = new BinaryReader(new MemoryStream(blockdata));
 			mBlocks = new MpqBlock[mHeader.BlockTableSize];
 
-			for (int i = 0; i < mHeader.BlockTableSize; i++)
+            for (int i = 0; i < blockcount; i++)
 				mBlocks[i] = new MpqBlock(br2, (uint)mHeaderOffset);
 		}
 		
