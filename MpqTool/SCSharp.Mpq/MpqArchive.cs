@@ -160,12 +160,14 @@ namespace MpqReader
 			index  &= mHeader.HashTableSize - 1;
 			uint name1 = HashString(Filename, 0x100);
 			uint name2 = HashString(Filename, 0x200);
-			
-			for(uint i = index; i < mHashes.Length; ++i)
-			{
-				MpqHash hash = mHashes[i];
-				if (hash.Name1 == name1 && hash.Name2 == name2) return hash;
-			}
+
+            uint i = index;
+            do
+            {
+                MpqHash hash = mHashes[i];
+                if (hash.Name1 == name1 && hash.Name2 == name2) return hash;
+                if (++i >= mHashes.Length) i = 0;
+            } while (i != index);
 
             return MpqHash.InvalidHash();
 		}
