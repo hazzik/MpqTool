@@ -29,16 +29,13 @@
 using System;
 using System.IO;
 
-namespace MpqReader
+namespace Foole.Mpq
 {
 	/// <summary>
 	/// An IMA ADPCM decompress for Mpq files
 	/// </summary>
-	public class MpqWavCompression
+	internal static class MpqWavCompression
 	{
-		private MpqWavCompression()
-		{}
-
 		private static readonly int[] sLookup =
 		{
 			0x0007, 0x0008, 0x0009, 0x000A, 0x000B, 0x000C, 0x000D, 0x000E,
@@ -63,31 +60,31 @@ namespace MpqReader
 		    -1, 2, -1, 4, -1, 6, -1, 8
 		};
 
-		public static byte[] Decompress(Stream Data, int ChannelCount)
+		public static byte[] Decompress(Stream data, int channelCount)
 		{
 			int[] Array1 = new int[] {0x2c, 0x2c};
-			int[] Array2 = new int[ChannelCount];
+			int[] Array2 = new int[channelCount];
 
-			BinaryReader input = new BinaryReader(Data);
+			BinaryReader input = new BinaryReader(data);
 			MemoryStream outputstream = new MemoryStream();
 			BinaryWriter output = new BinaryWriter(outputstream);
 			
 			input.ReadByte();
 			byte shift = input.ReadByte();
 			
-			for (int i = 0; i < ChannelCount; i++)
+			for (int i = 0; i < channelCount; i++)
 			{
 				short temp = input.ReadInt16();
 				Array2[i] = temp;
 				output.Write(temp);
 			}
 
-			int channel = ChannelCount - 1;
-			while(Data.Position < Data.Length)
+			int channel = channelCount - 1;
+			while(data.Position < data.Length)
 			{
 				byte value = input.ReadByte();
 
-				if (ChannelCount == 2) channel = 1 - channel;
+				if (channelCount == 2) channel = 1 - channel;
 				
 				if ((value & 0x80) != 0)
 				{
@@ -100,14 +97,14 @@ namespace MpqReader
 						case 1:
 							Array1[channel] += 8;
 							if(Array1[channel] > 0x58) Array1[channel] = 0x58;
-							if (ChannelCount == 2) channel = 1 - channel;
+							if (channelCount == 2) channel = 1 - channel;
 							break;
 						case 2:
 							break;
 						default:
 							Array1[channel] -= 8;
 							if(Array1[channel] < 0) Array1[channel] = 0;
-							if (ChannelCount == 2) channel = 1 - channel;
+							if (channelCount == 2) channel = 1 - channel;
 							break;
 					}
 				} else

@@ -30,10 +30,10 @@ using System;
 using System.IO;
 using System.Collections;
 
-namespace MpqReader
+namespace Foole.Mpq
 {
 	// A node which is both hierachcical (parent/child) and doubly linked (next/prev)
-	class LinkedNode
+	internal class LinkedNode
 	{
 		public int DecompressedValue;
 		public int Weight;
@@ -46,40 +46,40 @@ namespace MpqReader
 		public LinkedNode Next;
 		public LinkedNode Prev;
 		
-		public LinkedNode(int DecompVal, int Weight)
+		public LinkedNode(int decompVal, int weight)
 		{
-			DecompressedValue = DecompVal;
-			this.Weight = Weight;
+			DecompressedValue = decompVal;
+			this.Weight = weight;
 		}
 
 		// TODO: This would be more efficient as a member of the other class
 		// ie avoid the recursion
-		public LinkedNode Insert(LinkedNode Other)
+		public LinkedNode Insert(LinkedNode other)
 		{
 			// 'Next' should have a lower weight
 			// we should return the lower weight
-			if (Other.Weight <= Weight)
+			if (other.Weight <= Weight)
 			{
 				// insert before
 				if (Next != null)
 				{
-					Next.Prev = Other;
-					Other.Next = Next;
+					Next.Prev = other;
+					other.Next = Next;
 				}
-				Next = Other;
-				Other.Prev = this;
-				return Other;
+				Next = other;
+				other.Prev = this;
+				return other;
 			} else
 			{
 				if (Prev == null)
 				{
 					// Insert after
-					Other.Prev = null;
-					Prev = Other;
-					Other.Next = this;
+					other.Prev = null;
+					Prev = other;
+					other.Next = this;
 				} else
 				{
-					Prev.Insert(Other);
+					Prev.Insert(other);
 				}
 			}
 			return this;
@@ -89,12 +89,8 @@ namespace MpqReader
 	/// <summary>
 	/// A decompressor for MPQ's huffman compression
 	/// </summary>
-	public class MpqHuffman
+	internal static class MpqHuffman
 	{
-		private MpqHuffman()
-		{
-		}
-		
 		private static readonly byte[][] sPrime =
 		{
 			// Compression type 0
@@ -223,9 +219,9 @@ namespace MpqReader
 			}
 		};
 
-		public static byte[] Decompress(Stream Data)
+		public static MemoryStream Decompress(Stream data)
 		{
-			int comptype = Data.ReadByte();
+			int comptype = data.ReadByte();
 
 			if (comptype == 0)
 				throw new NotImplementedException("Compression type 0 is not currently supported");
@@ -234,7 +230,7 @@ namespace MpqReader
 			LinkedNode head = BuildTree(tail);
 
 			MemoryStream outputstream = new MemoryStream();
-			BitStream bitstream = new BitStream(Data);
+			BitStream bitstream = new BitStream(data);
 			int decoded;
 			do
 			{
@@ -254,43 +250,44 @@ namespace MpqReader
 						break;
 				}
 			} while (decoded != 256);
-			
-			return outputstream.ToArray();
+
+            outputstream.Seek(0, SeekOrigin.Begin);
+			return outputstream;
 		}
 
-		private static LinkedNode Decode(BitStream Input, LinkedNode Head)
+		private static LinkedNode Decode(BitStream input, LinkedNode head)
 		{
-			LinkedNode node = Head;
+			LinkedNode node = head;
 
 			while(node.Child0 != null)
 			{
-				int bit = Input.ReadBits(1);
+				int bit = input.ReadBits(1);
 				if (bit == -1)
-                    throw new MpqParserException("Unexpected end of file");
+					throw new Exception("Unexpected end of file");
 
 				node = bit == 0 ? node.Child0 : node.Child1;
 			}
 			return node;
 		}
 
-		private static LinkedNode BuildList(byte[] PrimeData)
+		private static LinkedNode BuildList(byte[] primeData)
 		{
 			LinkedNode root;
 			
 			root = new LinkedNode(256, 1);
 			root = root.Insert(new LinkedNode(257, 1));
 
-			for(int i = 0; i < PrimeData.Length; i++)
+			for(int i = 0; i < primeData.Length; i++)
 			{
-				if (PrimeData[i] != 0) 
-					root = root.Insert(new LinkedNode(i, PrimeData[i]));
+				if (primeData[i] != 0) 
+					root = root.Insert(new LinkedNode(i, primeData[i]));
 			}
 			return root;
 		}
 
-		private static LinkedNode BuildTree(LinkedNode Tail)
+		private static LinkedNode BuildTree(LinkedNode tail)
 		{
-			LinkedNode current = Tail;
+			LinkedNode current = tail;
 
 			while(current != null)
 			{
@@ -309,21 +306,21 @@ namespace MpqReader
 			return current;
 		}
 
-		private static LinkedNode InsertNode(LinkedNode Tail, int Decomp)
+		private static LinkedNode InsertNode(LinkedNode tail, int decomp)
 		{
-			LinkedNode parent = Tail;
-			LinkedNode result = Tail.Prev; // This will be the new tail after the tree is updated
+			LinkedNode parent = tail;
+			LinkedNode result = tail.Prev; // This will be the new tail after the tree is updated
 
 			LinkedNode temp = new LinkedNode(parent.DecompressedValue, parent.Weight);
 			temp.Parent = parent;
 
-			LinkedNode newnode = new LinkedNode(Decomp, 0);
+			LinkedNode newnode = new LinkedNode(decomp, 0);
 			newnode.Parent = parent;
 
 			parent.Child0 = newnode;
 
-			Tail.Next = temp;
-			temp.Prev = Tail;
+			tail.Next = temp;
+			temp.Prev = tail;
 			newnode.Prev = temp;
 			temp.Next = newnode;
 
@@ -336,9 +333,9 @@ namespace MpqReader
 
 		// This increases the weight of the new node and its antecendants
 		// and adjusts the tree if needed
-		private static void AdjustTree(LinkedNode NewNode)
+		private static void AdjustTree(LinkedNode newNode)
 		{
-			LinkedNode current = NewNode;
+			LinkedNode current = newNode;
 
 			while (current != null)
 			{

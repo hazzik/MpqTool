@@ -36,7 +36,7 @@ using System;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
-using MpqReader;
+using Foole.Mpq;
 
 namespace MpqTool
 {
@@ -61,7 +61,7 @@ namespace MpqTool
         /// <param name="args">The args.</param>
         void Run(string[] args)
         {
-            try
+   //         try
             {
                 // Check mandatory args
                 if(args.Length < 1)
@@ -110,13 +110,14 @@ namespace MpqTool
                     }
                 }
             }
-
+/*
             catch(Exception ex)
             {
                 Console.WriteLine(ex.Message);
                 Console.WriteLine("Aborted.");
                 Environment.ExitCode = 10;
             }
+ */
         }
 
         /// <summary>
@@ -124,7 +125,7 @@ namespace MpqTool
         /// </summary>
         private static void ShowBanner()
         {
-            Console.WriteLine("mpqtool v0.85");
+            Console.WriteLine("mpqtool v0.86");
         }
 
         /// <summary>
@@ -210,30 +211,31 @@ namespace MpqTool
         {
             using(MpqArchive archive = new MpqArchive(archiveFile))
             {
+                archive.AddListfileFilenames();
+                
                 // setup external listfile if specified
                 if(listFile != null && listFile != "")
-                    archive.ExternalListFile = listFile;
+                    using (Stream s = File.OpenRead(listFile))
+                        archive.AddFilenames(s);
 
                 Console.WriteLine("ucmp. size   cmp. size   ratio   cmp. type   filename");
                 Console.WriteLine("----------   ---------   -----   ---------   --------");
 
-                for(int i = 0; i < archive.Files.Length; i++)
+                foreach (MpqEntry entry in archive)
                 {
-                    MpqArchive.FileInfo fi = archive.Files[i];
-
                     // match pattern
-                    if(regex != null && !regex.Match(fi.Name).Success)
+                    if (regex != null && !regex.Match(entry.Filename).Success)
                         continue;
 
-                    string srcFile = fi.Name;
-                    if(stripPath)
+                    string srcFile = entry.Filename;
+                    if (stripPath)
                         srcFile = Path.GetFileName(srcFile);
-                    
+
                     // display info
                     Console.WriteLine("{0, 10}   {1, 9}   {2, 5}   {3, 9}   {4}",
-                                      fi.UncompressedSize, fi.CompressedSize,
-                                      CompressionRatioString(fi.UncompressedSize, fi.CompressedSize),
-                                      CompressionTypeString(fi.Flags), srcFile);
+                                      entry.FileSize, entry.CompressedSize,
+                                      CompressionRatioString(entry.FileSize, entry.CompressedSize),
+                                      CompressionTypeString(entry.Flags), srcFile);
                 }
             }
         }
@@ -249,9 +251,12 @@ namespace MpqTool
                 if(destDir == null || destDir == "")
                     destDir = Directory.GetCurrentDirectory();    // default to current dir of not specified
 
+                archive.AddListfileFilenames();
+
                 // setup external listfile if specified
-                if(listFile != null && listFile != "")
-                    archive.ExternalListFile = listFile;
+                if (listFile != null && listFile != "")
+                    using (Stream s = File.OpenRead(listFile))
+                        archive.AddFilenames(s);
 
                 // buffers
                 byte[] buf = new byte[0x40000];
@@ -259,35 +264,26 @@ namespace MpqTool
                 if(!quietOutput)
                     Console.WriteLine("Extracting to {0}", destDir);
 
-                for(int i = 0; i < archive.Files.Length; i++)
+                foreach(MpqEntry entry in archive)
                 {
-                    MpqArchive.FileInfo fi = archive.Files[i];
-
-                    // WoW contains a lot of files with Flags & FileHasMetadata
-                    //if((fi.Flags & MpqFileFlags.FileHasMetadata) != 0)
-                    //    continue;
-                    // WoW contains a lot of zero length files with Flags & Unknown_02000000
-                    //if((fi.Flags & MpqFileFlags.Unknown_02000000) != 0)
-                    //    continue;
-                    
                     // match pattern
-                    if(regex != null && !regex.Match(fi.Name).Success)
+                    if (regex != null && !regex.Match(entry.Filename).Success)
                         continue;
 
                     if(!quietOutput)
-                        Console.Write(fi.Name + " .. ");
+                        Console.Write(entry.Filename + " .. ");
+
+                    string srcFile = entry.Filename;
+                    if (stripPath)
+                        srcFile = Path.GetFileName(srcFile);
 
                     // create destination directory
-                    string srcFile = fi.Name;
-                    if(stripPath)
-                        srcFile = Path.GetFileName(srcFile);
-                   
                     string destFile = Path.Combine(destDir, srcFile);
                     string absDestDir = Path.GetDirectoryName(destFile);
                     CreateDirectory(absDestDir);
 
                     // copy to destination file
-                    using(Stream stmIn = archive.OpenFile(fi.Name))
+                    using(Stream stmIn = archive.OpenFile(entry))
                     {
                         using(Stream stmOut = new FileStream(destFile, FileMode.Create))
                         {

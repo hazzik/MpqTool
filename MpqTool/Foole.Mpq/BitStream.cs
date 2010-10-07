@@ -29,56 +29,53 @@
 using System;
 using System.IO;
 
-namespace MpqReader
+namespace Foole.Mpq
 {
 	/// <summary>
 	/// A utility class for reading groups of bits from a stream
 	/// </summary>
 	internal class BitStream
 	{
-		private Stream mStream;
-		private int mCurrent;
-		private int mBitCount;
+        private Stream _baseStream;
+        private int _current;
+		private int _bitCount;
 
-		public BitStream(Stream SourceStream)
+		public BitStream(Stream sourceStream)
 		{
-			mStream = SourceStream;
+            _baseStream = sourceStream;
 		}
 		
-		public Stream BaseStream
-		{ get { return mStream; } }
-
-		public int ReadBits(int BitCount)
+		public int ReadBits(int bitCount)
 		{
-			if (BitCount > 16)
+			if (bitCount > 16)
 				throw new ArgumentOutOfRangeException("BitCount", "Maximum BitCount is 16");
-			if (EnsureBits(BitCount) == false) return -1;
-			int result = mCurrent & (0xffff >> (16 - BitCount));
-			WasteBits(BitCount);
+			if (EnsureBits(bitCount) == false) return -1;
+            int result = _current & (0xffff >> (16 - bitCount));
+			WasteBits(bitCount);
 			return result;
 		}
 
 		public int PeekByte()
 		{
 			if (EnsureBits(8) == false) return -1;
-			return mCurrent & 0xff;
+            return _current & 0xff;
 		}
 
-		public bool EnsureBits(int BitCount)
+		public bool EnsureBits(int bitCount)
 		{
-			if (BitCount <= mBitCount) return true;
-			
-			if (mStream.Position >= mStream.Length) return false;
-			int nextvalue = mStream.ReadByte();
-			mCurrent |= nextvalue << mBitCount;
-			mBitCount += 8;
+			if (bitCount <= _bitCount) return true;
+
+            if (_baseStream.Position >= _baseStream.Length) return false;
+            int nextvalue = _baseStream.ReadByte();
+            _current |= nextvalue << _bitCount;
+			_bitCount += 8;
 			return true;
 		}
 		
-		private bool WasteBits(int BitCount)
+		private bool WasteBits(int bitCount)
 		{
-			mCurrent >>= BitCount;
-			mBitCount -= BitCount;
+            _current >>= bitCount;
+			_bitCount -= bitCount;
 			return true;
 		}
 	}

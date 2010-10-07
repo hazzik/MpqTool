@@ -29,7 +29,7 @@
 using System;
 using System.IO;
 
-namespace MpqReader
+namespace Foole.Mpq
 {
 	enum CompressionType
 	{
@@ -41,10 +41,9 @@ namespace MpqReader
 	/// </summary>
 	public class PKLibDecompress
 	{
-		private BitStream mStream;
-
-		private CompressionType mCType;
-		private int mDSizeBits;	// Dictionary size in bits
+		private BitStream _bitstream;
+		private CompressionType _compressionType;
+		private int _dictSizeBits;	// Dictionary size in bits
 		
 		private static byte[] sPosition1;
 		private static byte[] sPosition2;
@@ -92,23 +91,23 @@ namespace MpqReader
 			sPosition2 = GenerateDecodeTable(sLenBits, sLenCode);
 		}
 
-		public PKLibDecompress(Stream Input)
+		public PKLibDecompress(Stream input)
 		{
-			mStream = new BitStream(Input);
+			_bitstream = new BitStream(input);
 
-			mCType = (CompressionType)Input.ReadByte();
-			if (mCType != CompressionType.Binary && mCType != CompressionType.Ascii)
-                throw new MpqParserException("Invalid compression type: " + mCType);
+			_compressionType = (CompressionType)input.ReadByte();
+			if (_compressionType != CompressionType.Binary && _compressionType != CompressionType.Ascii)
+				throw new InvalidDataException("Invalid compression type: " + _compressionType);
 
-			mDSizeBits = Input.ReadByte();
+			_dictSizeBits = input.ReadByte();
 			// This is 6 in test cases
-			if(4 > mDSizeBits || mDSizeBits > 6)
-                throw new MpqParserException("Invalid dictionary size: " + mDSizeBits);
+			if(4 > _dictSizeBits || _dictSizeBits > 6)
+                throw new InvalidDataException("Invalid dictionary size: " + _dictSizeBits);
 		}
 
-		public byte[] Explode(int ExpectedSize)
+		public byte[] Explode(int expectedSize)
 		{
-			byte[] outputbuffer = new byte[ExpectedSize];
+			byte[] outputbuffer = new byte[expectedSize];
 			Stream outputstream = new MemoryStream(outputbuffer);
 
 			int instruction;
@@ -132,7 +131,7 @@ namespace MpqReader
 				}
 			}
 
-			if (outputstream.Position == ExpectedSize)
+			if (outputstream.Position == expectedSize)
 			{
 				return outputbuffer;
 			} else
@@ -150,23 +149,23 @@ namespace MpqReader
 		// -1            : EOF
 		private int DecodeLit()
 		{
-			switch(mStream.ReadBits(1))
+			switch(_bitstream.ReadBits(1))
 			{
 				case -1:
 					return -1;
 					
 				case 1:
 					// The next bits are position in buffers
-					int pos = sPosition2[mStream.PeekByte()];
+					int pos = sPosition2[_bitstream.PeekByte()];
 
 					// Skip the bits we just used
-					if (mStream.ReadBits(sLenBits[pos]) == -1) return -1;
+					if (_bitstream.ReadBits(sLenBits[pos]) == -1) return -1;
 	
 					int nbits = sExLenBits[pos];
 					if(nbits != 0)
 					{
 						// TODO: Verify this conversion
-						int val2 = mStream.ReadBits(nbits);
+						int val2 = _bitstream.ReadBits(nbits);
 						if (val2 == -1 && (pos + val2 != 0x10e)) return -1;
 
 						pos = sLenBase[pos] + val2;
@@ -174,8 +173,8 @@ namespace MpqReader
 					return pos + 0x100; // Return number of bytes to repeat
 
 				case 0:
-					if (mCType == CompressionType.Binary)
-						return mStream.ReadBits(8);
+					if (_compressionType == CompressionType.Binary)
+						return _bitstream.ReadBits(8);
 
 					// TODO: Text mode
 					throw new NotImplementedException("Text mode is not yet implemented");
@@ -184,36 +183,36 @@ namespace MpqReader
 			}
 		}
 
-		private int DecodeDist(int Length)
+		private int DecodeDist(int length)
 		{
-			if (mStream.EnsureBits(8) == false) return 0;
-			int pos = sPosition1[mStream.PeekByte()];
+			if (_bitstream.EnsureBits(8) == false) return 0;
+			int pos = sPosition1[_bitstream.PeekByte()];
 			byte skip = sDistBits[pos];     // Number of bits to skip
 
 			// Skip the appropriate number of bits
-			if (mStream.ReadBits(skip) == -1) return 0;
+			if (_bitstream.ReadBits(skip) == -1) return 0;
 
-			if(Length == 2)
+			if(length == 2)
 			{
-				if (mStream.EnsureBits(2) == false) return 0;
-				pos = (pos << 2) | mStream.ReadBits(2);
+				if (_bitstream.EnsureBits(2) == false) return 0;
+				pos = (pos << 2) | _bitstream.ReadBits(2);
 			} else
 			{
-				if (mStream.EnsureBits(mDSizeBits) == false) return 0;
-				pos = ((pos << mDSizeBits)) | mStream.ReadBits(mDSizeBits);
+				if (_bitstream.EnsureBits(_dictSizeBits) == false) return 0;
+				pos = ((pos << _dictSizeBits)) | _bitstream.ReadBits(_dictSizeBits);
 			}
 
 			return pos+1;
 		}
 
-		private static byte[] GenerateDecodeTable(byte[] Bits, byte[] Codes)
+		private static byte[] GenerateDecodeTable(byte[] bits, byte[] codes)
 		{
 			byte[] result = new byte[256];
 
-			for(int i = Bits.Length - 1; i >= 0; i--)
+			for(int i = bits.Length - 1; i >= 0; i--)
 			{
-				UInt32 idx1 = Codes[i];
-				UInt32 idx2 = (UInt32)1 << Bits[i];
+				UInt32 idx1 = codes[i];
+				UInt32 idx2 = (UInt32)1 << bits[i];
 
 				do
 				{
