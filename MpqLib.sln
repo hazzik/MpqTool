@@ -1,7 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MpqTool", "MpqTool\MpqTool.csproj", "{FA50E172-836B-47BB-8745-60595E4FB12A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MpqLib", "MpqLib\MpqLib.csproj", "{FA50E172-836B-47BB-8745-60595E4FB12A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MpqTool", "MpqTool\MpqTool.csproj", "{A36D578A-94BC-4FB2-B44C-D4D91D2AD382}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -13,6 +15,10 @@ Global
 		{FA50E172-836B-47BB-8745-60595E4FB12A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FA50E172-836B-47BB-8745-60595E4FB12A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FA50E172-836B-47BB-8745-60595E4FB12A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A36D578A-94BC-4FB2-B44C-D4D91D2AD382}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A36D578A-94BC-4FB2-B44C-D4D91D2AD382}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A36D578A-94BC-4FB2-B44C-D4D91D2AD382}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A36D578A-94BC-4FB2-B44C-D4D91D2AD382}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
