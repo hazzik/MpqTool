@@ -401,9 +401,11 @@ namespace Foole.Mpq
 #if WITH_BZIP
         private static byte[] BZip2Decompress(Stream data, int expectedLength)
         {
-            MemoryStream output = new MemoryStream(expectedLength);
-            BZip2.Decompress(data, output);
-            return output.ToArray();
+            using (var output = new MemoryStream(expectedLength))
+            {
+                BZip2.Decompress(data, output, false);
+                return output.ToArray();
+            }
         }
 #endif
 
