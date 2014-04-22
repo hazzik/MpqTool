@@ -61,7 +61,7 @@ namespace MpqTool
         /// <param name="args">The args.</param>
         void Run(string[] args)
         {
-   //         try
+            try
             {
                 // Check mandatory args
                 if(args.Length < 1)
@@ -110,14 +110,12 @@ namespace MpqTool
                     }
                 }
             }
-/*
             catch(Exception ex)
             {
                 Console.WriteLine(ex.Message);
                 Console.WriteLine("Aborted.");
                 Environment.ExitCode = 10;
             }
- */
         }
 
         /// <summary>
